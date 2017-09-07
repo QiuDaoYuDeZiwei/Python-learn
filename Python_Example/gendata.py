@@ -42,3 +42,6 @@ m = re.match(patt, data)
 if m is not None:
     m.group()
 m.group(1)  # u
+
+patt = r'\d+-\d+-\d+'
+re.search(patt, data).group()
