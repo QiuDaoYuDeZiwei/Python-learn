@@ -29,4 +29,4 @@ p=re.compile(r'^\d*L$')
 #1.9
 p=re.compile(r'^\d*\.\d*')
 #1.10
-p=re.compile(r'(\(\d*+\d*j\))|(\d*j)')
+p=re.compile(r'\(\d*\+\d*j\)|\d*j')
