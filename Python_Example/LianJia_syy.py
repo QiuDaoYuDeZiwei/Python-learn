@@ -8,7 +8,10 @@ modified：
 """
 print __doc__
 
-import time, random, re, sys
+import time
+import random
+import re
+import sys
 import threading
 # Excel写入库 import xlwt  python3
 import MySQLdb
@@ -23,6 +26,7 @@ sys.path.append(r'D:\GitHub\python')
 from GetProxy import *
 
 # 链家网页爬虫：http://www.tuicool.com/articles/zMrUryb
+
 
 def buildInfoList(pageCount):
     url_page = 'http://nj.lianjia.com/xiaoqu/'
@@ -40,16 +44,18 @@ def buildInfoList(pageCount):
         proxy = GetUseProxy(proxies)
 
         # 请求服务器
-        source_code = requests.get(currentUrl,headers=header, proxies = proxy)
+        source_code = requests.get(currentUrl, headers=header, proxies=proxy)
         soup = BeautifulSoup(source_code.text)
-        #print soup
+        # print soup
         xiaoqu_list = soup.findAll('li', {'class': 'clear xiaoquListItem'})
         # 解析URL
         for xq in xiaoqu_list:
             # print(xp)
             info_dict = {}
-            info_dict.update({u'小区名称': xq.find('div', {'class': 'title'}).find('a').text})
-            info_dict.update({u'90天成交量': xq.find('div', {'class': 'houseInfo'}).find('a').text})
+            info_dict.update(
+                {u'小区名称': xq.find('div', {'class': 'title'}).find('a').text})
+            info_dict.update(
+                {u'90天成交量': xq.find('div', {'class': 'houseInfo'}).find('a').text})
             positionInfo = xq.find('div', {'class': 'positionInfo'})
             info_dict.update({u'所在区': positionInfo.findAll('a')[0].text})
             info_dict.update({u'所在板块': positionInfo.findAll('a')[1].text})
@@ -59,8 +65,10 @@ def buildInfoList(pageCount):
                 info_dict.update({u'建成时间': buildYear})
             else:
                 info_dict.update({u'建成时间': 'NULL'})
-            info_dict.update({u'小区均价': xq.find('div', {'class': 'totalPrice'}).find('span').text})
-            info_dict.update({u'在售套数': xq.find('div', {'class': 'xiaoquListItemSellCount'}).find('span').text})
+            info_dict.update(
+                {u'小区均价': xq.find('div', {'class': 'totalPrice'}).find('span').text})
+            info_dict.update({u'在售套数': xq.find(
+                'div', {'class': 'xiaoquListItemSellCount'}).find('span').text})
             if any(info_dict):
                 listResult.append(info_dict)
                 # print(info_dict)
@@ -85,23 +93,23 @@ def Savemysql(listResult):
                  averageprice text,
                  numberofsolds text )
                  DEFAULT CHARSET=utf8"""
-        c.SqlExecute(sql)    
+        c.SqlExecute(sql)
 
         for rowi in range(1, nrows):
             sql = """insert into lianjia values ('%s','%s' ,'%s','%s','%s','%s','%s','%s') """ \
-               % (time.strftime('%Y-%m-%d %X',time.localtime(time.time()))\
-                ,listResult[rowi][u'小区名称'], listResult[rowi][u'90天成交量'], listResult[rowi][u'所在区'], \
-                listResult[rowi][u'所在板块'],listResult[rowi][u'建成时间'], listResult[rowi][u'小区均价'], listResult[rowi][u'在售套数'])
+                % (time.strftime('%Y-%m-%d %X', time.localtime(time.time())), listResult[rowi][u'小区名称'], listResult[rowi][u'90天成交量'], listResult[rowi][u'所在区'],
+                   listResult[rowi][u'所在板块'], listResult[rowi][u'建成时间'], listResult[rowi][u'小区均价'], listResult[rowi][u'在售套数'])
             print sql
             c.SqlExecute(sql)
         c.CloseCon()
-    except Exception as e :
+    except Exception as e:
         print e
 
-if __name__ == "__main__":   
+
+if __name__ == "__main__":
     proxies = HiveProxys(5)
     for i in xrange(1, 101):
         infoList = buildInfoList(i)
         if len(infoList):
             Savemysql(infoList)
-    print str(time.strftime('%Y-%m-%d %X',time.localtime(time.time()))) + ' ok'
+    print str(time.strftime('%Y-%m-%d %X', time.localtime(time.time()))) + ' ok'

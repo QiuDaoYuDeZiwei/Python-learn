@@ -6,7 +6,7 @@ u"""
 """
 import os
 import re
-f= os.popen('tasklist /nh','r')
+f = os.popen('tasklist /nh', 'r')
 p = re.compile(r'([\w.]+(?: [\w.]+)*)\s\s+(\d+) \w+\s\s+\d+\s\s+([\d,]+ K)')
 for eachLine in f:
     print re.findall(p, eachLine.rstrip())

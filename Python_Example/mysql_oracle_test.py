@@ -43,7 +43,8 @@ cursor.execute(sql)
 conn.commit()
 
 for i in results:
-    cursor.execute("insert into  syy_lianjia  values (:1,:2,:3,:4,:5,:6,:7,:8)", i)
+    cursor.execute(
+        "insert into  syy_lianjia  values (:1,:2,:3,:4,:5,:6,:7,:8)", i)
     conn.commit()
 cursor.close()
 conn.close()
