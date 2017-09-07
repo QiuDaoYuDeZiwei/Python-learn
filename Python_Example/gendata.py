@@ -21,3 +21,12 @@ for i in xrange(randrange(5, 11)):
     dlen = randrange(llen, 13)
     dom = ''.join(choice(lc) for j in xrange(dlen))
     print '%s::%s@%s.%s::%d-%d-%d' % (dtstr, login, dom, choice(tlds), dtint, llen, dlen)
+
+
+import re
+data = 'Sun Jan 15 22:22:09 2006::o@iojsof.gov::1137334929-6-6'
+patt = r'^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)'
+m = re.match(patt, data)
+m.group()
+m.group(1)
+m.groups()
