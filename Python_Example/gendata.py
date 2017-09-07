@@ -30,3 +30,15 @@ m = re.match(patt, data)
 m.group()
 m.group(1)
 m.groups()
+
+patt = r'^(\w{3})'
+m = re.match(patt, data)
+if m is not None:
+    m.group()
+m.group(1)
+
+patt = r'^(\w){3}'
+m = re.match(patt, data)
+if m is not None:
+    m.group()
+m.group(1)  # u
