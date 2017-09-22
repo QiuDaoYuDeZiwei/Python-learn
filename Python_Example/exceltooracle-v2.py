@@ -24,7 +24,7 @@ if sys.getdefaultencoding() != 'utf-8':
     sys.setdefaultencoding('utf-8')
 
 
-def BFS_Dir(path,TableNum,dirCallback=None, fileCallback=None):
+def BFS_Dir(path, TableNum, dirCallback=None, fileCallback=None):
     # 从目标文件目录下寻找后缀为 .xls or xlsx，
     # 选择需要导入的Excel表(部分是不需要导入的)
     queue = []
@@ -42,14 +42,14 @@ def BFS_Dir(path,TableNum,dirCallback=None, fileCallback=None):
             ret.append(tmp)
             if fileCallback:
                 fileCallback(tmp)
-                
-    pattern = ur'.*%s.*(xlsx|xls)$' %(ExcelTableName_dict[TableNum])
+
+    pattern = ur'.*%s.*(xlsx|xls)$' % (ExcelTableName_dict[TableNum])
     ret = [i for i in ret if re.search(pattern, i)]
     return ret
 
 
 def TransTableType(filepath):
-    # excel 到 csv    
+    # excel 到 csv
     tmp = pd.read_excel(filepath)
     filepath = os.path.splitext(filepath)[:-1][0] + r'.csv'
     tmp.to_csv(filepath, index=False, header=False, encoding="utf-8")
@@ -62,16 +62,17 @@ def FileToOracle(filepath, TableNum):
     conn = cx_Oracle.connect('system/Syy19930119@localhost:1521/orcl')
     cur = conn.cursor()
     try:
-        cur.execute('select * from %s  where rownum <= 1 ' % (TableName_dict[TableNum]) )
+        cur.execute('select * from %s  where rownum <= 1 ' %
+                    (TableName_dict[TableNum]))
         colsnum = len(cur.fetchone())
     except:
         print 'Table %s has no data' % (TableName_dict[TableNum])
-        tmp = pd.read_csv(filepath, header = None)
+        tmp = pd.read_csv(filepath, header=None)
         colsnum = len(tmp.columns)
 
     if TableNum <> 2:
         for index, line in enumerate(codecs.open(filepath, "r", "utf-8")):
-            sql = """insert into  %s  values ("""   % (TableName_dict[TableNum])
+            sql = """insert into  %s  values (""" % (TableName_dict[TableNum])
             for fields in (line.split(","))[0:colsnum]:
                 sql = sql + "'" + fields + "',"
             print sql[:-1] + ")"
@@ -79,46 +80,47 @@ def FileToOracle(filepath, TableNum):
             conn.commit()
         cur.close()
         conn.close()
-    elif TableNum == 2:    
+    elif TableNum == 2:
         d = '20170' + re.search(r'.*?(\d).*?', filepath).group(1)
         for index, line in enumerate(codecs.open(filepath, "r", "utf-8")):
-            sql = """insert into  %s values (""" + "'" + d + "'," % (TableName_dict[TableNum])
+            sql = """insert into  %s values (""" + "'" + \
+                d + "'," % (TableName_dict[TableNum])
             for fields in (line.split(","))[0:colsnum]:
                 sql = sql + "'" + fields + "',"
-            #sql = sql[:-1] + ",date'" + \
+            # sql = sql[:-1] + ",date'" + \
             #    time.strftime('%Y-%m-%d', time.localtime(time.time())) + "'" + ")"
             sql = sql[:-1] + "'" + ")"
             print sql
-            #f = codecs.open(
-             #   ur'D:\WORK\电能\DataToOracle\insert_sql.sql', "a+", "utf-8")
+            # f = codecs.open(
+            #   ur'D:\WORK\电能\DataToOracle\insert_sql.sql', "a+", "utf-8")
             #f.writelines(sql + ';' + '\n')
             cur.execute(sql)
             conn.commit()
         cur.close()
         conn.close()
-        #f.close()
+        # f.close()
 
 
 if __name__ == '__main__':
-  
-    ExcelTableName_dict = {1: u'故障工单', 2:u'充值记录'}
-    TableName_dict = {1: 'FAULT_LIST', 2:'CHARGE_REPORT'}
-    
+
+    ExcelTableName_dict = {1: u'故障工单', 2: u'充值记录'}
+    TableName_dict = {1: 'FAULT_LIST', 2: 'CHARGE_REPORT'}
+
     TableNum = input(u"""
     enter number:\n
     1-故障工单-FAULT_LIST  \n
     2-充值记录(社会充电记录)-CHARGE_REPORT \n
-    """)    
+    """)
 
     path = ur'G:\DataToOracle\国网'
 
     filepath_list = BFS_Dir(path, TableNum)
-    
+
     csvpath_list = []
     for filepath in filepath_list:
         csvpath_list.append(TransTableType(filepath))
-        
+
     for csvpath in csvpath_list:
         FileToOracle(csvpath, TableNum)
-        
+
     print time.strftime('%Y-%m-%d', time.localtime(time.time()))
