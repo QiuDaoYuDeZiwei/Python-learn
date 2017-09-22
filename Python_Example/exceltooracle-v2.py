@@ -83,8 +83,8 @@ def FileToOracle(filepath, TableNum):
     elif TableNum == 2:
         d = '20170' + re.search(r'.*?(\d).*?', filepath).group(1)
         for index, line in enumerate(codecs.open(filepath, "r", "utf-8")):
-            sql = """insert into  %s values (""" + "'" + \
-                d + "'," % (TableName_dict[TableNum])
+            sql = """insert into  %s values (""" % (TableName_dict[TableNum])+ "'" + \
+                d + "'," 
             for fields in (line.split(","))[0:colsnum]:
                 sql = sql + "'" + fields + "',"
             # sql = sql[:-1] + ",date'" + \
