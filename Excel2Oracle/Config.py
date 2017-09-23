@@ -4,27 +4,35 @@ u"""
 CONFIG
 AUTHOR:SYY
 ################################################################################
-按照需求可以修改：
+按照需求可以修改:
 1.数据库信息
 2.目标文件地址
-2.Excel表的名称-字典：ExcelTableName_dict
-3.oracle表的名称-字典：TableName_dict
+2.Excel表的名称-字典:ExcelTableName_dict
+3.oracle表的名称-字典:TableName_dict
 4.表字段字段-字典: ColsName_dict
 5.输入时的提示语句-InputStatement
 ################################################################################
 """
+
+import re
+import os
+import time
+import codecs
+import cx_Oracle
+import pandas as pd
+
 # 数据库信息
 oracle_connect = 'system/Syy19930119@localhost:1521/test'
-# 格式：user/passwords@host:port/database
+# 格式:user/passwords@host:port/database
 
 # 目标文件地址
-path = ur'G:\DataToOracle'
+#path = ur'G:\DataToOracle'
 
 # Excel表的名称
-ExcelTableName_dict = {1: u'故障工单', 2: u'充电数据', 3: 'test', }
+ExcelTableName_dict = {1: u'充电数据', 2: u'故障工单', 3: 'test', }
 
 # oracle表的名称
-TableName_dict = {1: 'FAULT_LIST', 2: 'CHARGE_REPORT', 3: 'test', }
+TableName_dict = {1: 'CHARGE_REPORT', 2: 'FAULT_LIST', 3: 'test', }
 
 # 表字段字段
 # ColsName_dict = {
@@ -41,12 +49,12 @@ TableName_dict = {1: 'FAULT_LIST', 2: 'CHARGE_REPORT', 3: 'test', }
 
 # 输入时的提示语句
 InputStatement = u"""
-enter number:\n
-1-故障工单-FAULT_LIST  \n
-2-充电数据(社会充电数据)-CHARGE_REPORT \n
-3-test-test\n
-"""
+Enter Number:\n
+1-充电数据(社会充电数据)-CHARGE_REPORT \n
+2-故障工单-FAULT_LIST \n
+3-test-test \n
+Enter: """
 
-SQL_dict = {1: "",
-            2: "",
-            3: "select from tmp", }
+# SQL_dict = {1: "",
+# 2: "",
+# 3: "select from tmp", }
