@@ -20,16 +20,20 @@ import time
 import codecs
 import cx_Oracle
 import pandas as pd
+from sqlalchemy import create_engine
+
 
 # 数据库信息
 oracle_connect = 'system/Syy19930119@localhost:1521/test'
 # 格式:user/passwords@host:port/database
-
+engine = create_engine('oracle+cx_oracle://system:Syy19930119@test', echo=True)
+#create_engine(u'oracle+cx_oracle://localhost:1521/orcl', echo=True, user='<>', password='<>', dsn='<>')
+chunksize = 250
 # 目标文件地址
 #path = ur'G:\DataToOracle'
 
 # Excel表的名称
-ExcelTableName_dict = {1: u'充电数据', 2: u'故障工单', 3: 'test', }
+ExcelTableName_dict = {1: u'全省充电数据', 2: u'充电桩故障监测', 3: 'test', }
 
 # oracle表的名称
 TableName_dict = {1: 'CHARGE_REPORT', 2: 'FAULT_LIST', 3: 'test', }
@@ -51,10 +55,12 @@ TableName_dict = {1: 'CHARGE_REPORT', 2: 'FAULT_LIST', 3: 'test', }
 InputStatement = u"""
 Enter Number:\n
 1-充电数据(社会充电数据)-CHARGE_REPORT \n
-2-故障工单-FAULT_LIST \n
+2-故障工单(充电桩故障监测)-FAULT_LIST \n
 3-test-test \n
 Enter: """
 
 # SQL_dict = {1: "",
 # 2: "",
 # 3: "select from tmp", }
+
+

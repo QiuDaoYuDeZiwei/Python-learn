@@ -117,6 +117,9 @@ def UpdateEXCELCOLSNAME(TableNum):
             print 'error,please try again!'
 
     if deal_case != 0:
+        ColsName_dict_ori = Createdict_ColName_Ori_Dealed(TableNum)
+        for key,value in ColsName_dict_ori.items():
+            print key,value
         conn = cx_Oracle.connect(oracle_connect)
         cur = conn.cursor()
         sql = 'select * from EXCELCOLSNAME where deal_colname is null and TableNum = %s' %(TableNum)
@@ -145,7 +148,8 @@ def Createdict_ColName_Ori_Dealed(TableNum):
     conn = cx_Oracle.connect(oracle_connect, encoding="utf-8")
     cur = conn.cursor()
     cur.execute(
-        'select ColName ,deal_colname from EXCELCOLSNAME where deal_colname is not null and TableNum = %s' %(TableNum))
+        'select distinct ColName ,deal_colname from EXCELCOLSNAME where deal_colname is not null and TableNum = %s' %(TableNum))
+    conn.commit()
     try:
         tmp = dict([(i[0].decode('utf-8', 'ignore'), i[1])
                     for i in cur.fetchall()])  # 编码问题
@@ -170,7 +174,7 @@ def CreateTable_TargetTable(TableNum):
 
     cur.execute("select 1 from ALL_ALL_TABLES where table_name = '%s' " %(TableName_dict[TableNum].upper()))
     t = cur.fetchall()
-    
+
     if bool(t):
         DropCase = input(u'Need to Drop Table %s\n 0-No 1-Yes\nEnter:' %
                          (TableName_dict[TableNum]))
@@ -182,7 +186,7 @@ def CreateTable_TargetTable(TableNum):
                 conn.commit()
 
     cur.execute(
-        "select deal_colname from EXCELCOLSNAME where deal_colname is not null and TableNum = %s" % (TableNum))
+        "select distinct deal_colname from EXCELCOLSNAME where deal_colname is not null and TableNum = %s" % (TableNum))
     deal_colname = cur.fetchall()
 
     if TableNum == 1:
@@ -193,11 +197,12 @@ def CreateTable_TargetTable(TableNum):
         sql = "create table %s" % (TableName_dict[TableNum]) + ' ( '
 
     for i in deal_colname:
-        if re.match(r'.*_DATE$', i[0]):
+        if re.match(r'.*_DATE$', i[0].upper()):
             sql += i[0] + ' date ,'
         else:
             sql += i[0] + ' varchar2(200) ,'
     sql += ' DT date)' # DT 更新时间
+    print sql
     try:
         cur.execute(sql)
         conn.commit()

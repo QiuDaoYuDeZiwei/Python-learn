@@ -70,11 +70,13 @@ def ExcelToOracle_tmp(filepath, TableNum):
     Tabletmp_ColName = [ColsName_dict_ori[i]
                      for i in Excel_ColName if i in ColsName_dict_ori.keys()]
 
+    print len(Excel_ColName) , len(Tabletmp_ColName)
     while len(Excel_ColName) > len(Tabletmp_ColName):
         UpdateEXCELCOLSNAME(TableNum)
         ColsName_dict = Createdict_ColName_Ori_Dealed(TableNum)
         Tabletmp_ColName = [ColsName_dict[i]
-                         for i in Excel_ColName if i in ColsName_dict.keys()]
+                     for i in Excel_ColName if i in ColsName_dict.keys()]
+        print len(Excel_ColName) , len(Tabletmp_ColName)
 
         if len(set(ColsName_dict_ori.values())) < len(set(ColsName_dict.values())) and len(ColsName_dict_ori.values()) > 0 :
             flag = 1
@@ -85,26 +87,38 @@ def ExcelToOracle_tmp(filepath, TableNum):
         pass
     # Create Table tmp
     CreateTabletmp_sql = 'create table tmp ( '
-    for i in Tabletmp_ColName:
+    for i in set(Tabletmp_ColName):
         CreateTabletmp_sql += str(i) + ' VARCHAR2(200) ,'
 
     cur.execute(CreateTabletmp_sql[:-1] + ')')
     conn.commit()
 
     # excel 2 csv
-    tmp = pd.read_excel(filepath) 
-    filepath = os.path.splitext(filepath)[:-1][0] + r'.csv'
-    if not os.path.exists(filepath):
-        tmp.to_csv(filepath, index=False, header=False, encoding="utf-8")
+    #tmp = pd.read_excel(filepath)
+    #tmp.columns = Tabletmp_ColName
+    #filepath = os.path.splitext(filepath)[:-1][0] + r'.csv'
+    #if not os.path.exists(filepath):
+        #tmp.to_csv(filepath, index=False, header=False, encoding="utf-8")
 
     # insert into tmp from csv's data
-    for index, line in enumerate(codecs.open(filepath, "r", "utf-8")):
-        sql = """insert into tmp values ("""
-        for fields in (line.split(",")):
-            sql = sql + "'" + fields + "',"
-        #print sql[:-1] + ")"
-        cur.execute(sql[:-1] + ")")
-        conn.commit()
+    ###
+
+    tmp = pd.read_excel(filepath)
+    print filepath
+    tmp.columns = Tabletmp_ColName
+    try:
+        tmp.to_sql('tmp', engine, if_exists='append', index = False, chunksize = chunksize)
+    except:
+        print 'error ,please check filepath %s' % (filepath)
+        print 'usually ,filepath columns have None'
+        return None
+    #for index, line in enumerate(codecs.open(filepath, "r", "utf-8")):
+        #sql = """insert into tmp values ("""
+        #for fields in (line.split(",")):
+            #sql = sql + "'" + fields + "',"
+        ##print sql[:-1] + ")"
+        #cur.execute(sql[:-1] + ")")
+        #conn.commit()
     cur.close()
     conn.close()
     return (flag,Tabletmp_ColName,ColsName_dict_ori.values())
@@ -118,86 +132,91 @@ def MergeTable_Tmp_Target(filepath, TableNum):
     cur = conn.cursor()
 
     Et = ExcelToOracle_tmp(filepath, TableNum)
-    flag = Et[0]
-    Tabletmp_ColName = Et[1]
-    TableName_ori = Et[2]
+    if bool(Et):
+        flag = Et[0]
+        Tabletmp_ColName = Et[1]
+        TableName_ori = set(Et[2])
     
-    cur.execute("select 1 from ALL_ALL_TABLES where table_name = '%s' " %(TableName_dict[TableNum].upper()))
-    t = cur.fetchall()
+        cur.execute("select 1 from ALL_ALL_TABLES where table_name = '%s' " %(TableName_dict[TableNum].upper()))
+        t = cur.fetchall()
     
-    if flag and bool(t):
-        print """Shit! Now We Have Trouble: \n
-        Excel Table %s Have More Cols Than Table %s
-        Filepath Is %s\n
-        Now We Have 2 Solutions:
-        1, Find The File, Delete Columns Which Not In Oracle Target Table;
-        2, Drop Oracle Target Table,Do It Again
-        """% (ExcelTableName_dict[TableNum], TableName_dict[TableNum], filepath)
-
-        while True:
-            try:
-                deal_case = input(u'Solution 1 OR 2 \n Enter(1 or 2):')
-                if deal_case == 1 or deal_case == 2:
-                    break
-            except:
-                print 'Error ,Please Try Again'
+        if flag and bool(t):
+            print """Shit! Now We Have Trouble: \n
+            Excel Table %s Have More Cols Than Table %s
+            Filepath Is %s\n
+            Now We Have 2 Solutions:
+            1, Find The File, Delete Columns Which Not In Oracle Target Table;
+            2, Drop Oracle Target Table,Do It Again
+            """% (ExcelTableName_dict[TableNum], TableName_dict[TableNum], filepath)
     
-        if deal_case == 1:
-            cur.execute('drop table tmp')
-            conn.commit()
-            cur.close()
-            conn.close()
-            print 'Bye'
-        else:
-            try:
+            while True:
+                try:
+                    deal_case = input(u'Solution 1 OR 2 \n Enter(1 or 2):')
+                    if deal_case == 1 or deal_case == 2:
+                        break
+                except:
+                    print 'Error ,Please Try Again'
+    
+            if deal_case == 1:
+                cur.execute('drop table tmp')
+                conn.commit()
+                cur.close()
+                conn.close()
+                print 'Bye'
+            else:
+                try:
+                    cur.execute('drop table %s_tmp' % (TableName_dict[TableNum]) )
+                    conn.commit()
+                except:
+                    print 'error,drop table %s_tmp' % (TableName_dict[TableNum])
                 cur.execute('rename  %s to %s_tmp' %(TableName_dict[TableNum],TableName_dict[TableNum]))
                 conn.commit()
                 CreateTable_TargetTable(TableNum)
-                sql = 'insert into %s ( ' % (TableName_dict[TableNum])
+                sql_part1 = 'insert into %s ( ' % (TableName_dict[TableNum])
+                sql_part2 = 'select '
                 for i in TableName_ori:
-                    sql += i + ' , '
-                sql = sql[:-1] + ' ) select * from %s_tmp' % (TableName_dict[TableNum])
+                    sql_part1 += i + ' ,'
+                    sql_part2 += i + ' ,'
+                sql = sql_part1 +  ' dt ) ' + sql_part2 + 'dt from %s_tmp' % (TableName_dict[TableNum])
                 cur.execute(sql)
                 conn.commit()
                 cur.execute('drop table %s_tmp' % (TableName_dict[TableNum]) )
-                conn.commit()                
-            except:
-                print 'Table %s is not exists'  % (TableName_dict[TableNum])
-                CreateTable_TargetTable(TableNum)
-    elif not bool(t):
-        CreateTable_TargetTable(TableNum)
-        
-
-    sql_part1 = 'insert into %s ( ' % (TableName_dict[TableNum])
-    sql_part2 = 'select '
-    if TableNum != 1:
-        for i in Tabletmp_ColName:
-            sql_part1 += i + ' , '
-            if re.match(r'.*_DATE$',i):
-                sql_part2 += "to_date(%s,'YYYY-MM-DD HH24:MI:SS')," %(i)
-            else:
-                sql_part2 += i + ' , '
-    else:
-        d = '2017-' + re.search(r'.*?(\d).*?', filepath).group(1) + '-1'
-        sql_part1 += ' CHARGE_MONTH ,'
-        sql_part2 += " to_date('%s','YYYY-MM-DD HH24:MI:SS') , " %(d)
-        for i in Tabletmp_ColName:
-            sql_part1 += i + ' , '
-            if re.match(r'.*_DATE$',i):
-                sql_part2 += "to_date(%s,'YYYY-MM-DD HH24:MI:SS') , " %(i)
-            else:
-                sql_part2 += i + ' , '
-    sql_part1 = sql_part1 + 'DT )'
-    sql_part2 = sql_part2 + 'SYSDATE from tmp'
-    sql = sql_part1 + sql_part2
-    print sql
-    cur.execute(sql)
-    conn.commit()
-    cur.execute('drop table tmp')
-    conn.commit()
-
-    cur.close()
-    conn.close()
+                conn.commit()
+    
+        if not bool(t):
+            CreateTable_TargetTable(TableNum)
+    
+    
+        sql_part1 = 'insert into %s ( ' % (TableName_dict[TableNum])
+        sql_part2 = 'select '
+        if TableNum != 1:
+            for i in set(Tabletmp_ColName):
+                sql_part1 += i + ' , '
+                if re.match(r'.*_DATE$',i.upper()):
+                    sql_part2 += "to_date(%s,'YYYY-MM-DD HH24:MI:SS')," %(i)
+                else:
+                    sql_part2 += i + ' , '
+        else:
+            d = '2017-' + re.search(r'.*?(\d).*?', filepath).group(1) + '-1'
+            sql_part1 += ' CHARGE_MONTH ,'
+            sql_part2 += " to_date('%s','YYYY-MM-DD HH24:MI:SS') , " %(d)
+            for i in set(Tabletmp_ColName):
+                sql_part1 += i + ' , '
+                if re.match(r'.*_DATE$',i.upper()):
+                    sql_part2 += "to_date(%s,'YYYY-MM-DD HH24:MI:SS') , " %(i)
+                else:
+                    sql_part2 += i + ' , '
+        sql_part1 = sql_part1 + 'DT )'
+        sql_part2 = sql_part2 + 'SYSDATE from tmp'
+        sql = sql_part1 + sql_part2
+        print sql
+        cur.execute(sql)
+        conn.commit()
+        cur.execute('drop table tmp')
+        conn.commit()
+    
+        cur.close()
+        conn.close()
 
 
 if __name__ == '__main__':
@@ -216,4 +235,4 @@ if __name__ == '__main__':
         #ExcelToOracle_tmp(filepath, TableNum)
         MergeTable_Tmp_Target(filepath, TableNum)
 
-    print time.strftime('%Y-%m-%d', time.localtime(time.time()))
+    print time.strftime('%Y-%m-%d', time.localtime(time.time())) + ' ok'
